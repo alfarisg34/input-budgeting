@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow ledger · gsheet form</title>
+    <!-- font & basic styling -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <!-- fontawesome for search icon (optional) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #f1f5f9;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 1.5rem 1rem;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            max-width: 780px;
+            width: 100%;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 20px 35px -8px rgba(0,0,0,0.15);
+            padding: 2rem 1.8rem;
+            transition: all 0.2s;
+        }
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            background: linear-gradient(145deg, #0f2b3d, #1e4b6e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.3rem;
+        }
+        .subhead {
+            color: #3a546d;
+            font-weight: 400;
+            font-size: 0.95rem;
+            border-left: 3px solid #2b7a8a;
+            padding-left: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        .form-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .row-duo {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.2rem;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        label {
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: #1e3b4f;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        label i {
+            color: #2b7a8a;
+            font-size: 0.8rem;
+            width: 1.2rem;
+        }
+        input, select, textarea {
+            background: #f8fafd;
+            border: 1.5px solid #dde7f0;
+            border-radius: 18px;
+            padding: 0.75rem 1.2rem;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: 0.15s;
+            outline: none;
+            color: #0b2a3b;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #2b7a8a;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(43,122,138,0.15);
+        }
+        input[readonly] {
+            background: #e9edf2;
+            color: #1e3f58;
+            font-weight: 500;
+            cursor: default;
+            border-color: #cbd6e3;
+        }
+        /* custom dropdown wrapper for search */
+        .search-dropdown {
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            background: #f8fafd;
+            border: 1.5px solid #dde7f0;
+            border-radius: 18px;
+            padding: 0.75rem 1.2rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .search-input span {
+            color: #2c5770;
+        }
+        .search-input i {
+            color: #7c9bb0;
+            transition: 0.2s;
+        }
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 12px 30px -8px rgba(0,40,60,0.25);
+            border: 1px solid #cde0ec;
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 30;
+            display: none;
+            padding: 0.5rem 0;
+        }
+        .dropdown-menu.show {
+            display: block;
+        }
+        .dropdown-searchbox {
+            padding: 0.6rem 1rem;
+            position: sticky;
+            top: 0;
+            background: white;
+            border-bottom: 1px solid #d2e1ed;
+        }
+        .dropdown-searchbox input {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border-radius: 40px;
+            border: 1px solid #bed6e8;
+            background: #f3f8ff;
+            font-size: 0.9rem;
+        }
+        .dropdown-items {
+            padding: 0.2rem 0;
+        }
+        .dropdown-item {
+            padding: 0.65rem 1.5rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #153e54;
+            transition: background 0.1s;
+        }
+        .dropdown-item:hover {
+            background: #dff2f5;
+        }
+        .dropdown-item.selected {
+            background: #c2e2eb;
+            font-weight: 500;
+            color: #0b394b;
+        }
+        .dropdown-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f0f0f0;
+        }
+        .meta-note {
+            font-size: 0.8rem;
+            color: #4b6376;
+            margin-top: 0.25rem;
+            margin-left: 0.5rem;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .btn-submit {
+            background: #17596b;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 1rem 1.8rem;
+            font-weight: 600;
+            font-size: 1.2rem;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 8px 18px -6px #1c6e8570;
+            margin-top: 1rem;
+            width: 100%;
+        }
+        .btn-submit:hover {
+            background: #0f4859;
+            transform: scale(1.01);
+            box-shadow: 0 10px 22px -6px #145b70;
+        }
+        .btn-submit:active {
+            background: #08323f;
+        }
+        .btn-submit:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .info-message {
+            background: #e5f2f5;
+            border-radius: 40px;
+            padding: 0.7rem 1.5rem;
+            font-size: 0.9rem;
+            color: #165f71;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            margin-top: 1rem;
+        }
+        .info-message i {
+            font-size: 1.2rem;
+        }
+        .hidden {
+            display: none;
+        }
+        .required-dot:after {
+            content: "*";
+            color: #b13e3e;
+            margin-left: 4px;
+        }
+        .warning-text {
+            color: #b13e3e;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+        @media (max-width: 540px) {
+            .card { padding: 1.5rem 1.2rem; }
+            .row-duo { grid-template-columns: 1fr; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>📒 flow ledger</h1>
+    <div class="subhead">submit entry · direct to google sheets</div>
+
+    <form id="ledgerForm" class="form-grid">
+        <!-- row: date & time -->
+        <div class="row-duo">
+            <div class="field">
+                <label><i class="far fa-calendar-alt"></i> Date</label>
+                <input type="date" id="dateInput" name="date" required>
+            </div>
+            <div class="field">
+                <label><i class="far fa-clock"></i> Time (24h)</label>
+                <input type="time" id="timeInput" name="time" step="60" required>
+            </div>
+        </div>
+
+        <!-- Income/Outcome dropdown -->
+        <div class="field">
+            <label><i class="fas fa-arrow-up"></i> Income / Outcome</label>
+            <select id="incomeOutcome" name="incomeOutcome" required>
+                <option value="" disabled selected>– select type –</option>
+                <option value="Pemasukan">💰 Income (Pemasukan)</option>
+                <option value="Pengeluaran">💸 Outcome (Pengeluaran)</option>
+            </select>
+        </div>
+
+        <!-- Sub category with search (dropdown) and hidden mapping -->
+        <div class="field">
+            <label><i class="fas fa-tag"></i> Sub category <span style="font-weight:normal; margin-left: 8px;">(search & select)</span></label>
+            <div class="search-dropdown" id="subCategoryDropdown">
+                <div class="search-input" id="dropdownToggle">
+                    <span id="selectedSubLabel">First select Income/Outcome</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-searchbox">
+                        <input type="text" id="subSearch" placeholder="type to filter..." autocomplete="off">
+                    </div>
+                    <div class="dropdown-items" id="dropdownItemsContainer">
+                        <!-- will be injected by js -->
+                    </div>
+                </div>
+            </div>
+            <!-- hidden input for sub category value -->
+            <input type="hidden" id="subCategory" name="subCategory" required>
+            <div id="categoryWarning" class="warning-text hidden"></div>
+        </div>
+
+        <!-- Main category (auto) -->
+        <div class="field">
+            <label><i class="fas fa-layer-group"></i> Main category</label>
+            <input type="text" id="mainCategory" name="mainCategory" readonly placeholder="auto filled">
+        </div>
+
+        <!-- Nominal (number) -->
+        <div class="field">
+            <label><i class="fas fa-coins"></i> Nominal (IDR)</label>
+            <input type="number" id="nominal" name="nominal" step="1" min="0" placeholder="0" required>
+        </div>
+
+        <!-- Desc (free text) -->
+        <div class="field">
+            <label><i class="fas fa-pencil-alt"></i> Description</label>
+            <textarea id="desc" name="desc" placeholder="e.g. lunch at warteg..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn"><i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send to gsheet</button>
+    </form>
+
+    <!-- message / info row -->
+    <div class="info-message" id="liveInfo">
+        <i class="fas fa-info-circle"></i>
+        <span id="infoText">Today's date & current time are pre-filled. Select Income/Outcome first.</span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ----- MAPPING DATA separated by Income/Outcome -----
+        const mapping = {
+            outcome: [
+                { main: "HOUSING & UTILITAS", subs: ["Mortgage or Rent","Maintenance or Repairs","Electricity","Water and Sewer","Gas","Waste Removal","Household Supplies","Other Housing"] },
+                { main: "TRANSPORTATION", subs: ["Fuel","Bus/Taxi Fare","Toll","Parking","Vehicle Maintenance","Other Transport"] },
+                { main: "FOOD & GROCERIES", subs: ["Groceries","Dining Out","Jajan/Snack","Other Food"] },
+                { main: "PERSONAL CARE & HEALTH", subs: ["Medical","Hair/Nails/Spa","Skin and Body Care","Clothing","Service HP","Other Personal Care"] },
+                { main: "FIXED BILLS & INSURANCE", subs: ["Internet (Home)","Mobile Phone Bill/Pulsa","Cable (TV Berlangganan)","Health Insurance","Life Insurance","Home Insurance","Organization Dues or Fees","Taxes (Admin Fee/Bank)","Other Bills"] },
+                { main: "ENTERTAINMENT & HOBBIES", subs: ["Games","Streaming (Youtube, Netflix, dll.)","Movies/Concert/Events","Dating/Social","Electronic","Shopping (Non-Clothing)","Other Entertainment"] },
+                { main: "EDUCATION & SELF-IMPROVEMENT", subs: ["Online Course","Book/Ebook","FC & Print","Other Education"] },
+                { main: "GIFTS, PETS & MISC.", subs: ["Family/Adek/My Beb","Donation & Gift","Pet Food & Supplies","Pet Medical/Grooming","Miscellaneous/Buffer"] },
+                { main: "LOANS & DEBTS", subs: ["Personal Loan","Student Loan","Credit Card Payment","Phone Payment","Friend (Repayment)","Other Loans & Debt"] }
+            ],
+            income: [
+                { main: "SAVINGS & INVESTMENTS", subs: ["Retirement Account","Investment","Emergency Fund","Other Savings"] },
+                { main: "PENGHASILAN UTAMA", subs: ["Gaji Pokok","Tunjangan","Bonus/Komisi","THR/Gaji ke-13"] },
+                { main: "PENGHASILAN SAMPINGAN", subs: ["Freelance / Kontrak","Bisnis Sampingan","Hasil Penjualan Aset","Other Sampingan"] },
+                { main: "PENGHASILAN PASIF & LAINNYA", subs: ["Dividen / Bunga Investasi","Bunga Tabungan / Deposito","Hasil Sewa Properti","Hadiah / Warisan","Pengembalian Utang"] }
+            ]
+        };
+
+        // Create lookup maps for each type
+        const subToMain = {
+            outcome: new Map(),
+            income: new Map()
+        };
+        
+        // Populate outcome map
+        mapping.outcome.forEach(item => {
+            item.subs.forEach(sub => subToMain.outcome.set(sub, item.main));
+        });
+        
+        // Populate income map
+        mapping.income.forEach(item => {
+            item.subs.forEach(sub => subToMain.income.set(sub, item.main));
+        });
+
+        // Get all subs by type
+        const allSubs = {
+            outcome: Array.from(subToMain.outcome.keys()),
+            income: Array.from(subToMain.income.keys())
+        };
+
+        // ----- DOM elements -----
+        const dateInput = document.getElementById('dateInput');
+        const timeInput = document.getElementById('timeInput');
+        const incomeOutcome = document.getElementById('incomeOutcome');
+        const subCategoryHidden = document.getElementById('subCategory');
+        const mainCategoryInput = document.getElementById('mainCategory');
+        const nominalInput = document.getElementById('nominal');
+        const descInput = document.getElementById('desc');
+        const form = document.getElementById('ledgerForm');
+        const infoSpan = document.getElementById('infoText');
+        const submitBtn = document.getElementById('submitBtn');
+        const categoryWarning = document.getElementById('categoryWarning');
+
+        // dropdown elements
+        const dropdownToggle = document.getElementById('dropdownToggle');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        const subSearch = document.getElementById('subSearch');
+        const dropdownItemsContainer = document.getElementById('dropdownItemsContainer');
+        const selectedSubLabel = document.getElementById('selectedSubLabel');
+
+        // Current selected type
+        let currentType = null;
+
+        // ----- set today's date & current time (HH:MM, 24h) -----
+        function setDefaults() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+
+            const hours = String(today.getHours()).padStart(2, '0');
+            const minutes = String(today.getMinutes()).padStart(2, '0');
+            timeInput.value = `${hours}:${minutes}`;
+        }
+        setDefaults();
+
+        // ----- render dropdown items based on selected type -----
+        function renderDropdownItems(filterText = '') {
+            const type = incomeOutcome.value;
+            
+            if (!type) {
+                dropdownItemsContainer.innerHTML = '<div style="padding:1rem 1.5rem; color:#777;">Please select Income/Outcome first</div>';
+                return;
+            }
+            
+            const typeKey = type === 'Pemasukan' ? 'income' : 'outcome';
+            const subs = allSubs[typeKey];
+            
+            const filterLower = filterText.toLowerCase().trim();
+            let filtered = subs;
+            if (filterLower !== '') {
+                filtered = subs.filter(sub => sub.toLowerCase().includes(filterLower));
+            }
+            
+            let htmlStr = '';
+            filtered.forEach(sub => {
+                const selectedAttr = (subCategoryHidden.value === sub) ? ' selected' : '';
+                htmlStr += `<div class="dropdown-item${selectedAttr}" data-sub="${sub}">${sub}</div>`;
+            });
+            
+            if (filtered.length === 0) {
+                htmlStr = '<div style="padding:1rem 1.5rem; color:#777;">no matching sub category</div>';
+            }
+            
+            dropdownItemsContainer.innerHTML = htmlStr;
+        }
+
+        // ----- handle type change (Income/Outcome selection) -----
+        function handleTypeChange() {
+            const type = incomeOutcome.value;
+            
+            // Clear previous selection
+            subCategoryHidden.value = '';
+            selectedSubLabel.innerText = type ? 'Choose sub category' : 'First select Income/Outcome';
+            mainCategoryInput.value = '';
+            categoryWarning.classList.add('hidden');
+            
+            // Update dropdown items
+            renderDropdownItems();
+            
+            // Close dropdown if open
+            closeDropdown();
+            
+            // Update info
+            if (type) {
+                infoSpan.innerText = type === 'Pemasukan' ? 
+                    '💰 Income mode: Showing income categories' : 
+                    '💸 Outcome mode: Showing expense categories';
+            } else {
+                infoSpan.innerText = 'Please select Income or Outcome to continue';
+            }
+        }
+
+        // Add event listener for income/outcome change
+        incomeOutcome.addEventListener('change', handleTypeChange);
+
+        // ----- dropdown functions -----
+        function closeDropdown() {
+            dropdownMenu.classList.remove('show');
+        }
+        
+        function openDropdown() {
+            if (!incomeOutcome.value) {
+                categoryWarning.textContent = 'Please select Income/Outcome first';
+                categoryWarning.classList.remove('hidden');
+                return;
+            }
+            
+            categoryWarning.classList.add('hidden');
+            subSearch.value = '';
+            renderDropdownItems();
+            dropdownMenu.classList.add('show');
+            subSearch.focus();
+        }
+
+        // Toggle dropdown
+        dropdownToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (dropdownMenu.classList.contains('show')) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        });
+
+        // Search inside dropdown
+        subSearch.addEventListener('input', (e) => {
+            renderDropdownItems(e.target.value);
+        });
+
+        // Click on item
+        dropdownItemsContainer.addEventListener('click', (e) => {
+            const item = e.target.closest('.dropdown-item');
+            if (!item) return;
+            
+            const selectedSub = item.dataset.sub;
+            if (!selectedSub) return;
+            
+            const type = incomeOutcome.value;
+            if (!type) {
+                categoryWarning.textContent = 'Please select Income/Outcome first';
+                categoryWarning.classList.remove('hidden');
+                return;
+            }
+            
+            const typeKey = type === 'Pemasukan' ? 'income' : 'outcome';
+            
+            // Verify this sub belongs to current type
+            if (!subToMain[typeKey].has(selectedSub)) {
+                categoryWarning.textContent = 'Invalid category for selected type';
+                categoryWarning.classList.remove('hidden');
+                return;
+            }
+            
+            // Update hidden input and label
+            subCategoryHidden.value = selectedSub;
+            selectedSubLabel.textContent = selectedSub;
+            
+            // Auto set main category
+            const main = subToMain[typeKey].get(selectedSub) || '';
+            mainCategoryInput.value = main;
+            
+            // Close dropdown
+            closeDropdown();
+            
+            // Re-render to update selected style
+            renderDropdownItems(subSearch.value);
+            
+            // Clear any warnings
+            categoryWarning.classList.add('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        // Prevent closing when click inside menu
+        dropdownMenu.addEventListener('click', (e) => e.stopPropagation());
+
+        // ----- form submit -----
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Validate type selected
+            if (!incomeOutcome.value) {
+                infoSpan.innerText = '❌ Please select Income or Outcome.';
+                return;
+            }
+
+            // Validate sub category
+            if (!subCategoryHidden.value) {
+                infoSpan.innerText = '❌ Please select a sub category.';
+                return;
+            }
+
+            // Validate nominal
+            if (!nominalInput.value || parseFloat(nominalInput.value) < 0) {
+                infoSpan.innerText = '❌ Nominal must be a positive number.';
+                return;
+            }
+
+            // Verify sub category matches selected type
+            const typeKey = incomeOutcome.value === 'Pemasukan' ? 'income' : 'outcome';
+            if (!subToMain[typeKey].has(subCategoryHidden.value)) {
+                infoSpan.innerText = '❌ Selected category does not match Income/Outcome type.';
+                return;
+            }
+
+            // Disable submit button to prevent double submission
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+            // Collect data
+            const payload = {
+                date: dateInput.value,
+                time: timeInput.value,
+                incomeOutcome: incomeOutcome.value,
+                mainCategory: mainCategoryInput.value,
+                subCategory: subCategoryHidden.value,
+                nominal: nominalInput.value,
+                desc: descInput.value || ''
+            };
+
+            // Show sending
+            infoSpan.innerHTML = '⏳ Sending to Google Sheets...';
+
+            // --- REPLACE THIS URL WITH YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL ---
+            const GSHEET_URL = 'https://script.google.com/macros/s/AKfycbwowRcjbkBUkby-akpYl4qFEyBKHdEcbe78hIyo4v269bSwWIdIoXecI1O-uaxpiKG6Gw/exec';
+
+            try {
+                await fetch(GSHEET_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // Success - reset form
+                infoSpan.innerHTML = '✅ Entry sent (verify in gsheet). Fresh form ready.';
+                
+                // Reset form but keep date/time updated
+                setDefaults();
+                subCategoryHidden.value = '';
+                selectedSubLabel.innerText = 'Choose sub category';
+                mainCategoryInput.value = '';
+                nominalInput.value = '';
+                descInput.value = '';
+                
+                // Keep the same Income/Outcome selection
+                renderDropdownItems();
+                
+            } catch (error) {
+                console.error(error);
+                infoSpan.innerHTML = '⚠️ Error submitting. Please try again.';
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send to gsheet';
+            }
+        });
+
+        // Initial render
+        renderDropdownItems();
+        infoSpan.innerText = '✔️ Default today/now set. Select Income/Outcome first.';
+    })();
+</script>
+<!-- small note: gs url must be replaced -->
+<div style="font-size:0.7rem; text-align:center; margin-top:1rem; color:#7b95aa;">deploy to vercel · form → gsheet (replace apps script url)</div>
+</body>
+</html>
