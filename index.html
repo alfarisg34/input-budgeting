@@ -34,7 +34,13 @@
             padding: 2rem 1.8rem;
             transition: all 0.2s;
         }
-        h1 {
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.3rem;
+        }
+        .title-section h1 {
             font-size: 1.9rem;
             font-weight: 600;
             letter-spacing: -0.02em;
@@ -42,7 +48,28 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 0.3rem;
+            margin: 0;
+        }
+        .refresh-btn {
+            background: #eef2f6;
+            border: none;
+            border-radius: 40px;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+            color: #17596b;
+            cursor: pointer;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1.5px solid #dde7f0;
+        }
+        .refresh-btn:hover {
+            background: #dde7f0;
+            transform: scale(1.02);
+        }
+        .refresh-btn i {
+            font-size: 0.9rem;
         }
         .subhead {
             color: #3a546d;
@@ -193,6 +220,23 @@
             resize: vertical;
             min-height: 80px;
         }
+        .nominal-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .nominal-prefix {
+            position: absolute;
+            left: 1.2rem;
+            color: #64748b;
+            font-weight: 500;
+            pointer-events: none;
+        }
+        #nominal {
+            padding-left: 2.5rem;
+            text-align: right;
+            font-weight: 500;
+        }
         .btn-submit {
             background: #17596b;
             color: white;
@@ -257,7 +301,14 @@
 </head>
 <body>
 <div class="card">
-    <h1>📒 flow ledger</h1>
+    <div class="header-row">
+        <div class="title-section">
+            <h1>📒 flow ledger</h1>
+        </div>
+        <button class="refresh-btn" id="refreshBtn" title="Refresh page">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
     <div class="subhead">submit entry · direct to google sheets</div>
 
     <form id="ledgerForm" class="form-grid">
@@ -311,10 +362,14 @@
             <input type="text" id="mainCategory" name="mainCategory" readonly placeholder="auto filled">
         </div>
 
-        <!-- Nominal (number) -->
+        <!-- Nominal (number) with formatting -->
         <div class="field">
             <label><i class="fas fa-coins"></i> Nominal (IDR)</label>
-            <input type="number" id="nominal" name="nominal" step="1" min="0" placeholder="0" required>
+            <div class="nominal-wrapper">
+                <span class="nominal-prefix">Rp</span>
+                <input type="text" id="nominal" name="nominal" placeholder="0" required autocomplete="off">
+            </div>
+            <div class="meta-note">* Format otomatis: 1.000.000 (nilai asli: 1000000)</div>
         </div>
 
         <!-- Desc (free text) -->
@@ -390,6 +445,7 @@
         const infoSpan = document.getElementById('infoText');
         const submitBtn = document.getElementById('submitBtn');
         const categoryWarning = document.getElementById('categoryWarning');
+        const refreshBtn = document.getElementById('refreshBtn');
 
         // dropdown elements
         const dropdownToggle = document.getElementById('dropdownToggle');
@@ -398,8 +454,13 @@
         const dropdownItemsContainer = document.getElementById('dropdownItemsContainer');
         const selectedSubLabel = document.getElementById('selectedSubLabel');
 
-        // Current selected type
-        let currentType = null;
+        // Store raw value for submission
+        let rawNominalValue = '';
+
+        // ----- Refresh button functionality -----
+        refreshBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
 
         // ----- set today's date & current time (HH:MM, 24h) -----
         function setDefaults() {
@@ -414,6 +475,113 @@
             timeInput.value = `${hours}:${minutes}`;
         }
         setDefaults();
+
+        // ----- Nominal formatting functions -----
+        function formatNumber(number) {
+            if (!number) return '';
+            
+            // Remove all non-digit characters except minus sign
+            const cleanNumber = number.toString().replace(/[^\d-]/g, '');
+            
+            // Handle negative numbers
+            const isNegative = cleanNumber.startsWith('-');
+            const absoluteNumber = isNegative ? cleanNumber.substring(1) : cleanNumber;
+            
+            // Format with thousand separators (.)
+            const formatted = absoluteNumber.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            
+            return isNegative ? `-${formatted}` : formatted;
+        }
+
+        function parseFormattedNumber(formattedValue) {
+            if (!formattedValue) return '';
+            // Remove dots and convert to number
+            return formattedValue.replace(/\./g, '');
+        }
+
+        function handleNominalInput(e) {
+            let input = e.target;
+            let cursorPos = input.selectionStart;
+            let rawValue = input.value;
+            
+            // Remove any non-digit characters (except minus sign at start)
+            let digitsOnly = rawValue.replace(/[^\d-]/g, '');
+            
+            // Handle multiple minus signs
+            let minusCount = (digitsOnly.match(/-/g) || []).length;
+            if (minusCount > 1) {
+                digitsOnly = digitsOnly.replace(/-/g, '');
+            } else if (minusCount === 1 && !digitsOnly.startsWith('-')) {
+                digitsOnly = digitsOnly.replace(/-/g, '');
+            }
+            
+            // Store raw value
+            rawNominalValue = digitsOnly;
+            
+            // Format for display
+            let formattedValue = formatNumber(digitsOnly);
+            
+            // Update input value
+            if (formattedValue !== input.value) {
+                input.value = formattedValue;
+                
+                // Adjust cursor position
+                let newCursorPos = cursorPos;
+                if (rawValue.length < formattedValue.length) {
+                    newCursorPos += formattedValue.length - rawValue.length;
+                }
+                input.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }
+
+        // Add nominal input listeners
+        nominalInput.addEventListener('input', handleNominalInput);
+        
+        // Handle backspace/delete properly
+        nominalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                let input = e.target;
+                let cursorPos = input.selectionStart;
+                let value = input.value;
+                
+                // Allow normal backspace behavior
+                setTimeout(() => {
+                    handleNominalInput({ target: input });
+                    // Try to maintain cursor position
+                    input.setSelectionRange(cursorPos - 1, cursorPos - 1);
+                }, 0);
+            }
+        });
+
+        // Handle paste
+        nominalInput.addEventListener('paste', (e) => {
+            e.preventDefault();
+            let pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            let digitsOnly = pastedText.replace(/[^\d-]/g, '');
+            
+            // Store raw value
+            rawNominalValue = digitsOnly;
+            
+            // Format and set
+            nominalInput.value = formatNumber(digitsOnly);
+        });
+
+        // Handle blur (format on exit)
+        nominalInput.addEventListener('blur', () => {
+            if (nominalInput.value) {
+                let digitsOnly = parseFormattedNumber(nominalInput.value);
+                if (digitsOnly) {
+                    nominalInput.value = formatNumber(digitsOnly);
+                }
+            }
+        });
+
+        // Handle focus (show raw number)
+        nominalInput.addEventListener('focus', () => {
+            if (rawNominalValue) {
+                nominalInput.value = rawNominalValue;
+            }
+        });
 
         // ----- render dropdown items based on selected type -----
         function renderDropdownItems(filterText = '') {
@@ -577,8 +745,11 @@
                 return;
             }
 
+            // Get raw nominal value (remove formatting)
+            const rawNominal = parseFormattedNumber(nominalInput.value);
+            
             // Validate nominal
-            if (!nominalInput.value || parseFloat(nominalInput.value) < 0) {
+            if (!rawNominal || parseFloat(rawNominal) < 0) {
                 infoSpan.innerText = '❌ Nominal must be a positive number.';
                 return;
             }
@@ -594,14 +765,14 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
-            // Collect data
+            // Collect data (use raw nominal value)
             const payload = {
                 date: dateInput.value,
                 time: timeInput.value,
                 incomeOutcome: incomeOutcome.value,
                 mainCategory: mainCategoryInput.value,
                 subCategory: subCategoryHidden.value,
-                nominal: nominalInput.value,
+                nominal: rawNominal, // Send raw number without formatting
                 desc: descInput.value || ''
             };
 
@@ -628,6 +799,7 @@
                 selectedSubLabel.innerText = 'Choose sub category';
                 mainCategoryInput.value = '';
                 nominalInput.value = '';
+                rawNominalValue = '';
                 descInput.value = '';
                 
                 // Keep the same Income/Outcome selection
