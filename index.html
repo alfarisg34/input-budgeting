@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flow ledger · gsheet form</title>
-    <!-- font & basic styling -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
-    <!-- fontawesome for search icon (optional) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -130,7 +129,89 @@
             cursor: default;
             border-color: #cbd6e3;
         }
-        /* custom dropdown wrapper for search */
+
+        /* ----- User Selector Pill ----- */
+        .user-selector-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .user-pill-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .user-pill {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.2rem;
+            border-radius: 18px;
+            border: 1.5px solid #dde7f0;
+            background: #f8fafd;
+            font-size: 0.95rem;
+            font-family: inherit;
+            font-weight: 500;
+            color: #3a546d;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            user-select: none;
+        }
+        .user-pill:hover {
+            border-color: #2b7a8a;
+            background: #eef6f8;
+        }
+        .user-pill.active-alfari {
+            background: linear-gradient(135deg, #1a5e72, #2b7a8a);
+            border-color: #1a5e72;
+            color: white;
+            box-shadow: 0 4px 14px -4px rgba(27,94,114,0.45);
+        }
+        .user-pill.active-nenis {
+            background: linear-gradient(135deg, #7c3d6e, #a855a0);
+            border-color: #7c3d6e;
+            color: white;
+            box-shadow: 0 4px 14px -4px rgba(124,61,110,0.45);
+        }
+        .user-pill .pill-avatar {
+            width: 1.6rem;
+            height: 1.6rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: rgba(255,255,255,0.25);
+            flex-shrink: 0;
+        }
+        .user-pill:not(.active-alfari):not(.active-nenis) .pill-avatar {
+            background: #dde7f0;
+            color: #3a546d;
+        }
+        .user-badge {
+            font-size: 0.78rem;
+            padding: 0.2rem 0.7rem;
+            border-radius: 40px;
+            margin-left: auto;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .user-pill.active-alfari .user-badge,
+        .user-pill.active-nenis .user-badge {
+            opacity: 1;
+            background: rgba(255,255,255,0.22);
+        }
+        #userWarning {
+            color: #b13e3e;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+        /* ----- end User Selector ----- */
+
         .search-dropdown {
             position: relative;
         }
@@ -205,11 +286,6 @@
             font-weight: 500;
             color: #0b394b;
         }
-        .dropdown-item.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: #f0f0f0;
-        }
         .meta-note {
             font-size: 0.8rem;
             color: #4b6376;
@@ -283,11 +359,6 @@
         .hidden {
             display: none;
         }
-        .required-dot:after {
-            content: "*";
-            color: #b13e3e;
-            margin-left: 4px;
-        }
         .warning-text {
             color: #b13e3e;
             font-size: 0.8rem;
@@ -296,6 +367,7 @@
         @media (max-width: 540px) {
             .card { padding: 1.5rem 1.2rem; }
             .row-duo { grid-template-columns: 1fr; gap: 1rem; }
+            .user-pill-group { flex-direction: column; }
         }
     </style>
 </head>
@@ -312,6 +384,26 @@
     <div class="subhead">submit entry · direct to google sheets</div>
 
     <form id="ledgerForm" class="form-grid">
+
+        <!-- ===== USER SELECTOR ===== -->
+        <div class="user-selector-field">
+            <label><i class="fas fa-user"></i> Untuk siapa?</label>
+            <div class="user-pill-group">
+                <div class="user-pill" id="pillAlfari" data-user="Alfari">
+                    <div class="pill-avatar">AF</div>
+                    <span>Alfari</span>
+                    <span class="user-badge">✓ aktif</span>
+                </div>
+                <div class="user-pill" id="pillNenis" data-user="Nenis">
+                    <div class="pill-avatar">NN</div>
+                    <span>Nenis</span>
+                    <span class="user-badge">✓ aktif</span>
+                </div>
+            </div>
+            <div id="userWarning" class="hidden">⚠️ Pilih user terlebih dahulu.</div>
+        </div>
+        <!-- ===== END USER SELECTOR ===== -->
+
         <!-- row: date & time -->
         <div class="row-duo">
             <div class="field">
@@ -334,7 +426,7 @@
             </select>
         </div>
 
-        <!-- Sub category with search (dropdown) and hidden mapping -->
+        <!-- Sub category with search -->
         <div class="field">
             <label><i class="fas fa-tag"></i> Sub category <span style="font-weight:normal; margin-left: 8px;">(search & select)</span></label>
             <div class="search-dropdown" id="subCategoryDropdown">
@@ -346,12 +438,9 @@
                     <div class="dropdown-searchbox">
                         <input type="text" id="subSearch" placeholder="type to filter..." autocomplete="off">
                     </div>
-                    <div class="dropdown-items" id="dropdownItemsContainer">
-                        <!-- will be injected by js -->
-                    </div>
+                    <div class="dropdown-items" id="dropdownItemsContainer"></div>
                 </div>
             </div>
-            <!-- hidden input for sub category value -->
             <input type="hidden" id="subCategory" name="subCategory" required>
             <div id="categoryWarning" class="warning-text hidden"></div>
         </div>
@@ -362,7 +451,7 @@
             <input type="text" id="mainCategory" name="mainCategory" readonly placeholder="auto filled">
         </div>
 
-        <!-- Nominal (number) with formatting -->
+        <!-- Nominal -->
         <div class="field">
             <label><i class="fas fa-coins"></i> Nominal (IDR)</label>
             <div class="nominal-wrapper">
@@ -372,25 +461,29 @@
             <div class="meta-note">* Format otomatis: 1.000.000 (nilai asli: 1000000)</div>
         </div>
 
-        <!-- Desc (free text) -->
+        <!-- Desc -->
         <div class="field">
             <label><i class="fas fa-pencil-alt"></i> Description</label>
             <textarea id="desc" name="desc" placeholder="e.g. lunch at warteg..."></textarea>
         </div>
 
-        <button type="submit" class="btn-submit" id="submitBtn"><i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send to gsheet</button>
+        <button type="submit" class="btn-submit" id="submitBtn">
+            <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send to gsheet
+        </button>
     </form>
 
-    <!-- message / info row -->
     <div class="info-message" id="liveInfo">
         <i class="fas fa-info-circle"></i>
-        <span id="infoText">Today's date & current time are pre-filled. Select Income/Outcome first.</span>
+        <span id="infoText">Pilih user, lalu isi form dan kirim.</span>
     </div>
 </div>
 
 <script>
     (function() {
-        // ----- MAPPING DATA separated by Income/Outcome -----
+        const GSHEET_URL       = 'https://script.google.com/macros/s/AKfycbwowRcjbkBUkby-akpYl4qFEyBKHdEcbe78hIyo4v269bSwWIdIoXecI1O-uaxpiKG6Gw/exec';
+        const GSHEET_URL_NENIS = 'https://script.google.com/macros/s/AKfycbysyqF24Ydd-Vj57QCwpUkOrCKUdWLg_F95RuiuR8lc-fO0-sq3e1WS91GTAa8HVrQWOw/exec';
+
+        // ----- MAPPING DATA -----
         const mapping = {
             outcome: [
                 { main: "HOUSING & UTILITAS", subs: ["Mortgage or Rent","Maintenance or Repairs","Electricity","Water and Sewer","Gas","Waste Removal","Household Supplies","Other Housing"] },
@@ -411,250 +504,172 @@
             ]
         };
 
-        // Create lookup maps for each type
-        const subToMain = {
-            outcome: new Map(),
-            income: new Map()
-        };
-        
-        // Populate outcome map
-        mapping.outcome.forEach(item => {
-            item.subs.forEach(sub => subToMain.outcome.set(sub, item.main));
-        });
-        
-        // Populate income map
-        mapping.income.forEach(item => {
-            item.subs.forEach(sub => subToMain.income.set(sub, item.main));
-        });
+        const subToMain = { outcome: new Map(), income: new Map() };
+        mapping.outcome.forEach(item => item.subs.forEach(sub => subToMain.outcome.set(sub, item.main)));
+        mapping.income.forEach(item => item.subs.forEach(sub => subToMain.income.set(sub, item.main)));
+        const allSubs = { outcome: Array.from(subToMain.outcome.keys()), income: Array.from(subToMain.income.keys()) };
 
-        // Get all subs by type
-        const allSubs = {
-            outcome: Array.from(subToMain.outcome.keys()),
-            income: Array.from(subToMain.income.keys())
-        };
-
-        // ----- DOM elements -----
-        const dateInput = document.getElementById('dateInput');
-        const timeInput = document.getElementById('timeInput');
-        const incomeOutcome = document.getElementById('incomeOutcome');
-        const subCategoryHidden = document.getElementById('subCategory');
-        const mainCategoryInput = document.getElementById('mainCategory');
-        const nominalInput = document.getElementById('nominal');
-        const descInput = document.getElementById('desc');
-        const form = document.getElementById('ledgerForm');
-        const infoSpan = document.getElementById('infoText');
-        const submitBtn = document.getElementById('submitBtn');
-        const categoryWarning = document.getElementById('categoryWarning');
-        const refreshBtn = document.getElementById('refreshBtn');
-
-        // dropdown elements
-        const dropdownToggle = document.getElementById('dropdownToggle');
-        const dropdownMenu = document.getElementById('dropdownMenu');
-        const subSearch = document.getElementById('subSearch');
+        // ----- DOM -----
+        const dateInput              = document.getElementById('dateInput');
+        const timeInput              = document.getElementById('timeInput');
+        const incomeOutcome          = document.getElementById('incomeOutcome');
+        const subCategoryHidden      = document.getElementById('subCategory');
+        const mainCategoryInput      = document.getElementById('mainCategory');
+        const nominalInput           = document.getElementById('nominal');
+        const descInput              = document.getElementById('desc');
+        const form                   = document.getElementById('ledgerForm');
+        const infoSpan               = document.getElementById('infoText');
+        const submitBtn              = document.getElementById('submitBtn');
+        const categoryWarning        = document.getElementById('categoryWarning');
+        const refreshBtn             = document.getElementById('refreshBtn');
+        const dropdownToggle         = document.getElementById('dropdownToggle');
+        const dropdownMenu           = document.getElementById('dropdownMenu');
+        const subSearch              = document.getElementById('subSearch');
         const dropdownItemsContainer = document.getElementById('dropdownItemsContainer');
-        const selectedSubLabel = document.getElementById('selectedSubLabel');
+        const selectedSubLabel       = document.getElementById('selectedSubLabel');
+        const pillAlfari             = document.getElementById('pillAlfari');
+        const pillNenis              = document.getElementById('pillNenis');
+        const userWarning            = document.getElementById('userWarning');
 
-        // Store raw value for submission
         let rawNominalValue = '';
+        let selectedUser    = ''; // 'Alfari' | 'Nenis' | ''
 
-        // ----- Refresh button functionality -----
-        refreshBtn.addEventListener('click', () => {
-            window.location.reload();
-        });
+        // ----- User pill logic -----
+        function setUser(user) {
+            selectedUser = user;
+            pillAlfari.classList.remove('active-alfari');
+            pillNenis.classList.remove('active-nenis');
+            userWarning.classList.add('hidden');
 
-        // ----- set today's date & current time (HH:MM, 24h) -----
+            if (user === 'Alfari') {
+                pillAlfari.classList.add('active-alfari');
+                infoSpan.innerText = '👤 Alfari dipilih — data dikirim ke sheet Alfari.';
+            } else if (user === 'Nenis') {
+                pillNenis.classList.add('active-nenis');
+                infoSpan.innerText = '👤 Nenis dipilih — data dikirim ke sheet Nenis.';
+            }
+        }
+
+        pillAlfari.addEventListener('click', () => setUser('Alfari'));
+        pillNenis.addEventListener('click',  () => setUser('Nenis'));
+
+        // ----- Refresh -----
+        refreshBtn.addEventListener('click', () => window.location.reload());
+
+        // ----- Defaults -----
         function setDefaults() {
             const today = new Date();
-            const year = today.getFullYear();
+            const year  = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
+            const day   = String(today.getDate()).padStart(2, '0');
             dateInput.value = `${year}-${month}-${day}`;
-
-            const hours = String(today.getHours()).padStart(2, '0');
+            const hours   = String(today.getHours()).padStart(2, '0');
             const minutes = String(today.getMinutes()).padStart(2, '0');
             timeInput.value = `${hours}:${minutes}`;
         }
         setDefaults();
 
-        // ----- Nominal formatting functions -----
+        // ----- Nominal formatting -----
         function formatNumber(number) {
             if (!number) return '';
-            
-            // Remove all non-digit characters except minus sign
-            const cleanNumber = number.toString().replace(/[^\d-]/g, '');
-            
-            // Handle negative numbers
-            const isNegative = cleanNumber.startsWith('-');
-            const absoluteNumber = isNegative ? cleanNumber.substring(1) : cleanNumber;
-            
-            // Format with thousand separators (.)
-            const formatted = absoluteNumber.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-            
+            const cleanNumber  = number.toString().replace(/[^\d-]/g, '');
+            const isNegative   = cleanNumber.startsWith('-');
+            const absoluteNum  = isNegative ? cleanNumber.substring(1) : cleanNumber;
+            const formatted    = absoluteNum.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             return isNegative ? `-${formatted}` : formatted;
         }
 
-        function parseFormattedNumber(formattedValue) {
-            if (!formattedValue) return '';
-            // Remove dots and convert to number
-            return formattedValue.replace(/\./g, '');
+        function parseFormattedNumber(val) {
+            return val ? val.replace(/\./g, '') : '';
         }
 
         function handleNominalInput(e) {
-            let input = e.target;
-            let cursorPos = input.selectionStart;
-            let rawValue = input.value;
-            
-            // Remove any non-digit characters (except minus sign at start)
+            let input      = e.target;
+            let cursorPos  = input.selectionStart;
+            let rawValue   = input.value;
             let digitsOnly = rawValue.replace(/[^\d-]/g, '');
-            
-            // Handle multiple minus signs
             let minusCount = (digitsOnly.match(/-/g) || []).length;
-            if (minusCount > 1) {
-                digitsOnly = digitsOnly.replace(/-/g, '');
-            } else if (minusCount === 1 && !digitsOnly.startsWith('-')) {
-                digitsOnly = digitsOnly.replace(/-/g, '');
-            }
-            
-            // Store raw value
+            if (minusCount > 1) { digitsOnly = digitsOnly.replace(/-/g, ''); }
+            else if (minusCount === 1 && !digitsOnly.startsWith('-')) { digitsOnly = digitsOnly.replace(/-/g, ''); }
             rawNominalValue = digitsOnly;
-            
-            // Format for display
             let formattedValue = formatNumber(digitsOnly);
-            
-            // Update input value
             if (formattedValue !== input.value) {
                 input.value = formattedValue;
-                
-                // Adjust cursor position
                 let newCursorPos = cursorPos;
-                if (rawValue.length < formattedValue.length) {
-                    newCursorPos += formattedValue.length - rawValue.length;
-                }
+                if (rawValue.length < formattedValue.length) { newCursorPos += formattedValue.length - rawValue.length; }
                 input.setSelectionRange(newCursorPos, newCursorPos);
             }
         }
 
-        // Add nominal input listeners
         nominalInput.addEventListener('input', handleNominalInput);
-        
-        // Handle backspace/delete properly
         nominalInput.addEventListener('keydown', (e) => {
             if (e.key === 'Backspace' || e.key === 'Delete') {
                 let input = e.target;
                 let cursorPos = input.selectionStart;
-                let value = input.value;
-                
-                // Allow normal backspace behavior
                 setTimeout(() => {
                     handleNominalInput({ target: input });
-                    // Try to maintain cursor position
                     input.setSelectionRange(cursorPos - 1, cursorPos - 1);
                 }, 0);
             }
         });
-
-        // Handle paste
         nominalInput.addEventListener('paste', (e) => {
             e.preventDefault();
-            let pastedText = (e.clipboardData || window.clipboardData).getData('text');
-            let digitsOnly = pastedText.replace(/[^\d-]/g, '');
-            
-            // Store raw value
+            let pastedText  = (e.clipboardData || window.clipboardData).getData('text');
+            let digitsOnly  = pastedText.replace(/[^\d-]/g, '');
             rawNominalValue = digitsOnly;
-            
-            // Format and set
             nominalInput.value = formatNumber(digitsOnly);
         });
-
-        // Handle blur (format on exit)
         nominalInput.addEventListener('blur', () => {
             if (nominalInput.value) {
                 let digitsOnly = parseFormattedNumber(nominalInput.value);
-                if (digitsOnly) {
-                    nominalInput.value = formatNumber(digitsOnly);
-                }
+                if (digitsOnly) nominalInput.value = formatNumber(digitsOnly);
             }
         });
-
-        // Handle focus (show raw number)
         nominalInput.addEventListener('focus', () => {
-            if (rawNominalValue) {
-                nominalInput.value = rawNominalValue;
-            }
+            if (rawNominalValue) nominalInput.value = rawNominalValue;
         });
 
-        // ----- render dropdown items based on selected type -----
+        // ----- Dropdown -----
         function renderDropdownItems(filterText = '') {
             const type = incomeOutcome.value;
-            
             if (!type) {
                 dropdownItemsContainer.innerHTML = '<div style="padding:1rem 1.5rem; color:#777;">Please select Income/Outcome first</div>';
                 return;
             }
-            
-            const typeKey = type === 'Pemasukan' ? 'income' : 'outcome';
-            const subs = allSubs[typeKey];
-            
-            const filterLower = filterText.toLowerCase().trim();
-            let filtered = subs;
-            if (filterLower !== '') {
-                filtered = subs.filter(sub => sub.toLowerCase().includes(filterLower));
-            }
-            
-            let htmlStr = '';
+            const typeKey    = type === 'Pemasukan' ? 'income' : 'outcome';
+            const subs       = allSubs[typeKey];
+            const filterLow  = filterText.toLowerCase().trim();
+            let filtered     = filterLow ? subs.filter(s => s.toLowerCase().includes(filterLow)) : subs;
+            let htmlStr      = '';
             filtered.forEach(sub => {
-                const selectedAttr = (subCategoryHidden.value === sub) ? ' selected' : '';
-                htmlStr += `<div class="dropdown-item${selectedAttr}" data-sub="${sub}">${sub}</div>`;
+                const sel = (subCategoryHidden.value === sub) ? ' selected' : '';
+                htmlStr += `<div class="dropdown-item${sel}" data-sub="${sub}">${sub}</div>`;
             });
-            
-            if (filtered.length === 0) {
-                htmlStr = '<div style="padding:1rem 1.5rem; color:#777;">no matching sub category</div>';
-            }
-            
+            if (!filtered.length) htmlStr = '<div style="padding:1rem 1.5rem; color:#777;">no matching sub category</div>';
             dropdownItemsContainer.innerHTML = htmlStr;
         }
 
-        // ----- handle type change (Income/Outcome selection) -----
         function handleTypeChange() {
-            const type = incomeOutcome.value;
-            
-            // Clear previous selection
             subCategoryHidden.value = '';
-            selectedSubLabel.innerText = type ? 'Choose sub category' : 'First select Income/Outcome';
+            selectedSubLabel.innerText = incomeOutcome.value ? 'Choose sub category' : 'First select Income/Outcome';
             mainCategoryInput.value = '';
             categoryWarning.classList.add('hidden');
-            
-            // Update dropdown items
             renderDropdownItems();
-            
-            // Close dropdown if open
             closeDropdown();
-            
-            // Update info
-            if (type) {
-                infoSpan.innerText = type === 'Pemasukan' ? 
-                    '💰 Income mode: Showing income categories' : 
-                    '💸 Outcome mode: Showing expense categories';
-            } else {
-                infoSpan.innerText = 'Please select Income or Outcome to continue';
+            if (incomeOutcome.value) {
+                infoSpan.innerText = incomeOutcome.value === 'Pemasukan' ? '💰 Income mode: Showing income categories' : '💸 Outcome mode: Showing expense categories';
             }
         }
 
-        // Add event listener for income/outcome change
         incomeOutcome.addEventListener('change', handleTypeChange);
 
-        // ----- dropdown functions -----
-        function closeDropdown() {
-            dropdownMenu.classList.remove('show');
-        }
-        
+        function closeDropdown() { dropdownMenu.classList.remove('show'); }
         function openDropdown() {
             if (!incomeOutcome.value) {
                 categoryWarning.textContent = 'Please select Income/Outcome first';
                 categoryWarning.classList.remove('hidden');
                 return;
             }
-            
             categoryWarning.classList.add('hidden');
             subSearch.value = '';
             renderDropdownItems();
@@ -662,138 +677,84 @@
             subSearch.focus();
         }
 
-        // Toggle dropdown
         dropdownToggle.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (dropdownMenu.classList.contains('show')) {
-                closeDropdown();
-            } else {
-                openDropdown();
-            }
+            dropdownMenu.classList.contains('show') ? closeDropdown() : openDropdown();
         });
 
-        // Search inside dropdown
-        subSearch.addEventListener('input', (e) => {
-            renderDropdownItems(e.target.value);
-        });
+        subSearch.addEventListener('input', (e) => renderDropdownItems(e.target.value));
 
-        // Click on item
         dropdownItemsContainer.addEventListener('click', (e) => {
             const item = e.target.closest('.dropdown-item');
             if (!item) return;
-            
             const selectedSub = item.dataset.sub;
             if (!selectedSub) return;
-            
-            const type = incomeOutcome.value;
-            if (!type) {
-                categoryWarning.textContent = 'Please select Income/Outcome first';
-                categoryWarning.classList.remove('hidden');
-                return;
-            }
-            
+            const type    = incomeOutcome.value;
+            if (!type) { categoryWarning.textContent = 'Please select Income/Outcome first'; categoryWarning.classList.remove('hidden'); return; }
             const typeKey = type === 'Pemasukan' ? 'income' : 'outcome';
-            
-            // Verify this sub belongs to current type
-            if (!subToMain[typeKey].has(selectedSub)) {
-                categoryWarning.textContent = 'Invalid category for selected type';
-                categoryWarning.classList.remove('hidden');
-                return;
-            }
-            
-            // Update hidden input and label
+            if (!subToMain[typeKey].has(selectedSub)) { categoryWarning.textContent = 'Invalid category for selected type'; categoryWarning.classList.remove('hidden'); return; }
             subCategoryHidden.value = selectedSub;
             selectedSubLabel.textContent = selectedSub;
-            
-            // Auto set main category
-            const main = subToMain[typeKey].get(selectedSub) || '';
-            mainCategoryInput.value = main;
-            
-            // Close dropdown
+            mainCategoryInput.value = subToMain[typeKey].get(selectedSub) || '';
             closeDropdown();
-            
-            // Re-render to update selected style
             renderDropdownItems(subSearch.value);
-            
-            // Clear any warnings
             categoryWarning.classList.add('hidden');
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
-            if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                closeDropdown();
-            }
+            if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) closeDropdown();
         });
-
-        // Prevent closing when click inside menu
         dropdownMenu.addEventListener('click', (e) => e.stopPropagation());
 
-        // ----- form submit -----
+        // ----- Submit -----
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Validate type selected
-            if (!incomeOutcome.value) {
-                infoSpan.innerText = '❌ Please select Income or Outcome.';
+            // Validate user
+            if (!selectedUser) {
+                userWarning.classList.remove('hidden');
+                infoSpan.innerText = '❌ Pilih user (Alfari / Nenis) terlebih dahulu.';
                 return;
             }
 
-            // Validate sub category
-            if (!subCategoryHidden.value) {
-                infoSpan.innerText = '❌ Please select a sub category.';
-                return;
-            }
+            if (!incomeOutcome.value) { infoSpan.innerText = '❌ Please select Income or Outcome.'; return; }
+            if (!subCategoryHidden.value) { infoSpan.innerText = '❌ Please select a sub category.'; return; }
 
-            // Get raw nominal value (remove formatting)
             const rawNominal = parseFormattedNumber(nominalInput.value);
-            
-            // Validate nominal
-            if (!rawNominal || parseFloat(rawNominal) < 0) {
-                infoSpan.innerText = '❌ Nominal must be a positive number.';
-                return;
-            }
+            if (!rawNominal || parseFloat(rawNominal) < 0) { infoSpan.innerText = '❌ Nominal must be a positive number.'; return; }
 
-            // Verify sub category matches selected type
             const typeKey = incomeOutcome.value === 'Pemasukan' ? 'income' : 'outcome';
-            if (!subToMain[typeKey].has(subCategoryHidden.value)) {
-                infoSpan.innerText = '❌ Selected category does not match Income/Outcome type.';
-                return;
-            }
+            if (!subToMain[typeKey].has(subCategoryHidden.value)) { infoSpan.innerText = '❌ Selected category does not match Income/Outcome type.'; return; }
 
-            // Disable submit button to prevent double submission
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
-            // Collect data (use raw nominal value)
             const payload = {
                 date: dateInput.value,
                 time: timeInput.value,
                 incomeOutcome: incomeOutcome.value,
                 mainCategory: mainCategoryInput.value,
                 subCategory: subCategoryHidden.value,
-                nominal: rawNominal, // Send raw number without formatting
-                desc: descInput.value || ''
+                nominal: rawNominal,
+                desc: descInput.value || '',
+                user: selectedUser
             };
 
-            // Show sending
-            infoSpan.innerHTML = '⏳ Sending to Google Sheets...';
+            // Choose target URL based on selected user
+            const targetURL = selectedUser === 'Nenis' ? GSHEET_URL_NENIS : GSHEET_URL;
 
-            // --- REPLACE THIS URL WITH YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL ---
-            const GSHEET_URL = 'https://script.google.com/macros/s/AKfycbwowRcjbkBUkby-akpYl4qFEyBKHdEcbe78hIyo4v269bSwWIdIoXecI1O-uaxpiKG6Gw/exec';
+            infoSpan.innerHTML = `⏳ Mengirim ke sheet <strong>${selectedUser}</strong>...`;
 
             try {
-                await fetch(GSHEET_URL, {
+                await fetch(targetURL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
-                // Success - reset form
-                infoSpan.innerHTML = '✅ Entry sent (verify in gsheet). Fresh form ready.';
-                
-                // Reset form but keep date/time updated
+                infoSpan.innerHTML = `✅ Entry terkirim ke sheet <strong>${selectedUser}</strong>. Form siap diisi lagi.`;
+
                 setDefaults();
                 subCategoryHidden.value = '';
                 selectedSubLabel.innerText = 'Choose sub category';
@@ -801,26 +762,20 @@
                 nominalInput.value = '';
                 rawNominalValue = '';
                 descInput.value = '';
-                
-                // Keep the same Income/Outcome selection
                 renderDropdownItems();
-                
+
             } catch (error) {
                 console.error(error);
                 infoSpan.innerHTML = '⚠️ Error submitting. Please try again.';
             } finally {
-                // Re-enable submit button
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send to gsheet';
             }
         });
 
-        // Initial render
         renderDropdownItems();
-        infoSpan.innerText = '✔️ Default today/now set. Select Income/Outcome first.';
+        infoSpan.innerText = '✔️ Default today/now set. Pilih user & Income/Outcome terlebih dahulu.';
     })();
 </script>
-<!-- small note: gs url must be replaced -->
-<div style="font-size:0.7rem; text-align:center; margin-top:1rem; color:#7b95aa;"></div>
 </body>
 </html>
